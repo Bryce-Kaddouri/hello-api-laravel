@@ -1,24 +1,33 @@
-# Utiliser l'image de base FrankenPHP
-FROM dunglas/frankenphp
+FROM dunglas/frankenphp:latest-php8.3
 
-# Définir le répertoire de travail
-WORKDIR /app
+# Be sure to replace "your-domain-name.example.com" by your domain name
+ENV SERVER_NAME=localhost
+# If you want to disable HTTPS, use this value instead:
+#ENV SERVER_NAME=:80
 
-# Cloner ton dépôt GitHub
-# Assure-toi d'utiliser un token si nécessaire pour l'authentification
-RUN apt-get update && apt-get install -y git \
-    && git clone https://github.com/TON_UTILISATEUR/TON_DEPOT.git /app \
-    && rm -rf /var/lib/apt/lists/*
+# Enable PHP production settings
+RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 
-# Installer les dépendances de Laravel
+# install git
+RUN apt-get update && apt-get install -y git
+
+# install composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
-RUN composer install --no-interaction --prefer-dist --optimize-autoloader
 
-# Copier les fichiers de configuration de FrankenPHP (ajuster selon ton setup)
-COPY frankenphp-config.yaml /usr/local/etc/frankenphp/
+# install laravel
+RUN composer global require laravel/installer
 
-# Exposer les ports
-EXPOSE 80 443 443/udp
+# install laravel project
+RUN git clone https://github.com/Bryce-Kaddouri/hello-api-laravel.git
 
-# Commande de démarrage
-CMD ["frankenphp", "serve", "--config", "/usr/local/etc/frankenphp/frankenphp-config.yaml"]
+# Copy the PHP files of your project in the public directory
+# COPY . /app/public
+# If you use Symfony or Laravel, you need to copy the whole project instead:
+COPY . /hello-api-laravel
+
+# install laravel dependencies
+RUN cd /hello-api-laravel && composer install
+
+# install laravel project
+RUN cd /hello-api-laravel && php artisan key:generate
+
